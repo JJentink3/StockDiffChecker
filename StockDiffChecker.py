@@ -19,24 +19,31 @@ if file_ns and file_dep:
     df_ns = pd.read_excel(file_ns)
     df_dep = pd.read_excel(file_dep)
 
-    # Attempt to identify EAN column in both files
-    possible_ean_cols_ns = [col for col in df_ns.columns if 'ean' in col.lower()]
-    possible_stock_cols_ns = [col for col in df_ns.columns if 'qty' in col.lower() or 'stock' in col.lower()]
+    # Netsuite kolommen zoeken
+    possible_ean_cols_ns = [col for col in df_ns.columns if 'ean' in col.lower()] or ['Item EANs (API)']
+    possible_stock_cols_ns = [col for col in df_ns.columns if 'qty' in col.lower() or 'stock' in col.lower()] or ['ATP Qty API']
     possible_desc_cols_ns = [col for col in df_ns.columns if 'desc' in col.lower()]
 
+    # Deposco kolommen zoeken
     possible_ean_cols_dep = [col for col in df_dep.columns if 'ean' in col.lower()]
     possible_stock_cols_dep = [col for col in df_dep.columns if 'on hand' in col.lower() or 'stock' in col.lower()]
 
-    ean_col_ns = possible_ean_cols_ns[0] if possible_ean_cols_ns else None
-    stock_col_ns = possible_stock_cols_ns[0] if possible_stock_cols_ns else None
-    desc_col_ns = possible_desc_cols_ns[0] if possible_desc_cols_ns else None
+    ean_col_ns = next((col for col in possible_ean_cols_ns if col in df_ns.columns), None)
+    stock_col_ns = next((col for col in possible_stock_cols_ns if col in df_ns.columns), None)
+    desc_col_ns = next((col for col in possible_desc_cols_ns if col in df_ns.columns), None)
 
-    ean_col_dep = possible_ean_cols_dep[0] if possible_ean_cols_dep else None
-    stock_col_dep = possible_stock_cols_dep[0] if possible_stock_cols_dep else None
+    ean_col_dep = next((col for col in possible_ean_cols_dep if col in df_dep.columns), None)
+    stock_col_dep = next((col for col in possible_stock_cols_dep if col in df_dep.columns), None)
 
     if not all([ean_col_ns, stock_col_ns, ean_col_dep, stock_col_dep]):
         st.error("Could not automatically detect EAN or stock columns. Please check your files.")
+        st.write("Detected Netsuite columns:", df_ns.columns.tolist())
+        st.write("Detected Deposco columns:", df_dep.columns.tolist())
     else:
+        # Toon gevonden kolommen
+        st.success(f"Using EAN column '{ean_col_ns}' and stock column '{stock_col_ns}' for Netsuite")
+        st.success(f"Using EAN column '{ean_col_dep}' and stock column '{stock_col_dep}' for Deposco")
+
         # Filter Netsuite: exclude rows without EAN and those starting with 'Box' or 'Bag'
         df_ns = df_ns[df_ns[ean_col_ns].notna()]
         if 'Number' in df_ns.columns:
@@ -81,3 +88,6 @@ if file_ns and file_dep:
         # Option to download results
         csv = difference_df.to_csv(index=False).encode('utf-8')
         st.download_button("Download Differences as CSV", csv, "inventory_differences.csv", "text/csv")
+
+
+ 
