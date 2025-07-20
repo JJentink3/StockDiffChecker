@@ -8,7 +8,7 @@ This app allows you to compare inventory levels between two systems: **Netsuite*
 
 **How it works:**
 - Upload the latest Excel exports from both systems below.
-- The app will automatically match products based on the EAN.
+- The app will automatically match products based on the EAN (detected by any column containing 'EAN' or 'EANs' in the name).
 - Differences in stock levels or missing products will be highlighted.
 """)
 
@@ -19,30 +19,19 @@ if file_ns and file_dep:
     df_ns = pd.read_excel(file_ns)
     df_dep = pd.read_excel(file_dep)
 
-    # Netsuite kolommen zoeken
-    possible_ean_cols_ns = [col for col in df_ns.columns if 'ean' in col.lower()] or ['Item EANs (API)']
-    possible_stock_cols_ns = [col for col in df_ns.columns if 'qty' in col.lower() or 'stock' in col.lower()] or ['ATP Qty API']
-    possible_desc_cols_ns = [col for col in df_ns.columns if 'desc' in col.lower()]
+    # Automatically detect EAN and stock columns
+    ean_col_ns = next((col for col in df_ns.columns if 'ean' in col.lower()), None)
+    stock_col_ns = next((col for col in df_ns.columns if 'qty' in col.lower() or 'stock' in col.lower()), None)
 
-    # Deposco kolommen zoeken
-    possible_ean_cols_dep = [col for col in df_dep.columns if 'ean' in col.lower()]
-    possible_stock_cols_dep = [col for col in df_dep.columns if 'on hand' in col.lower() or 'stock' in col.lower()]
-
-    ean_col_ns = next((col for col in possible_ean_cols_ns if col in df_ns.columns), None)
-    stock_col_ns = next((col for col in possible_stock_cols_ns if col in df_ns.columns), None)
-    desc_col_ns = next((col for col in possible_desc_cols_ns if col in df_ns.columns), None)
-
-    ean_col_dep = next((col for col in possible_ean_cols_dep if col in df_dep.columns), None)
-    stock_col_dep = next((col for col in possible_stock_cols_dep if col in df_dep.columns), None)
+    ean_col_dep = next((col for col in df_dep.columns if 'ean' in col.lower()), None)
+    stock_col_dep = next((col for col in df_dep.columns if 'on hand' in col.lower() or 'stock' in col.lower()), None)
 
     if not all([ean_col_ns, stock_col_ns, ean_col_dep, stock_col_dep]):
         st.error("Could not automatically detect EAN or stock columns. Please check your files.")
         st.write("Detected Netsuite columns:", df_ns.columns.tolist())
         st.write("Detected Deposco columns:", df_dep.columns.tolist())
     else:
-        # Toon gevonden kolommen
-        st.success(f"Using EAN column '{ean_col_ns}' and stock column '{stock_col_ns}' for Netsuite")
-        st.success(f"Using EAN column '{ean_col_dep}' and stock column '{stock_col_dep}' for Deposco")
+        st.success(f"Using columns: Netsuite → EAN: '{ean_col_ns}', Stock: '{stock_col_ns}' | Deposco → EAN: '{ean_col_dep}', Stock: '{stock_col_dep}'")
 
         # Filter Netsuite: exclude rows without EAN and those starting with 'Box' or 'Bag'
         df_ns = df_ns[df_ns[ean_col_ns].notna()]
@@ -50,23 +39,8 @@ if file_ns and file_dep:
             df_ns = df_ns[~df_ns['Number'].astype(str).str.startswith(('Box', 'Bag'))]
 
         # Rename columns for consistency
-        df_ns = df_ns.rename(columns={
-            ean_col_ns: 'EAN',
-            stock_col_ns: 'Stock_NS'
-        })
-        if 'Number' in df_ns.columns:
-            df_ns = df_ns.rename(columns={'Number': 'Item_NS'})
-        if desc_col_ns:
-            df_ns = df_ns.rename(columns={desc_col_ns: 'Description_NS'})
-
-        df_dep = df_dep.rename(columns={
-            ean_col_dep: 'EAN',
-            stock_col_dep: 'Stock_Deposco'
-        })
-        if 'Item' in df_dep.columns:
-            df_dep = df_dep.rename(columns={'Item': 'Item_Deposco'})
-        if 'Description' in df_dep.columns:
-            df_dep = df_dep.rename(columns={'Description': 'Description_Deposco'})
+        df_ns = df_ns.rename(columns={ean_col_ns: 'EAN', stock_col_ns: 'Stock_NS'})
+        df_dep = df_dep.rename(columns={ean_col_dep: 'EAN', stock_col_dep: 'Stock_Deposco'})
 
         # Ensure EAN is string
         df_ns['EAN'] = df_ns['EAN'].astype(str).str.strip()
@@ -88,6 +62,3 @@ if file_ns and file_dep:
         # Option to download results
         csv = difference_df.to_csv(index=False).encode('utf-8')
         st.download_button("Download Differences as CSV", csv, "inventory_differences.csv", "text/csv")
-
-
- 
