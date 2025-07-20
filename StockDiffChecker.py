@@ -22,10 +22,9 @@ file_ns = st.file_uploader("Upload Netsuite Excel file", type=["xlsx"])
 file_dep = st.file_uploader("Upload Deposco Excel file", type=["xlsx"])
 
 def detect_column(columns, keywords):
-    for col in columns:
-        for kw in keywords:
-            if kw.lower() in col.lower():
-                return col
+    matches = [col for col in columns if any(kw.lower() in col.lower() for kw in keywords)]
+    if matches:
+        return matches[0]
     return None
 
 if file_ns and file_dep:
@@ -67,8 +66,8 @@ if file_ns and file_dep:
     # Clean Deposco file
     if match_key == "EAN":
         df_dep = df_dep[df_dep[match_key].notna()]
-    if 'Number' in df_dep.columns:
-        df_dep = df_dep[~df_dep['Number'].astype(str).str.startswith(('Box', 'Bag'))]
+    if item_col_dep and item_col_dep in df_dep.columns:
+        df_dep = df_dep[~df_dep[item_col_dep].astype(str).str.startswith(('Box', 'Bag'))]
 
     df_ns = df_ns.rename(columns={stock_col_ns: 'Stock_NS'})
     df_dep = df_dep.rename(columns={stock_col_dep: 'Stock_Deposco'})
