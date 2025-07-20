@@ -86,8 +86,12 @@ if file_ns and file_dep:
         df_ns = df_ns.rename(columns={desc_col_ns: 'Description'})
 
     # Merge datasets
-    cols_ns = [match_key, 'Stock_NS'] + (["Item"] if "Item" in df_ns.columns else []) + (["Description"] if "Description" in df_ns.columns else [])
-    cols_dep = [match_key, 'Stock_Deposco'] + (["Description"] if "Description" in df_dep.columns else [])
+    cols_ns = [match_key, 'Stock_NS']
+    if 'Item' in df_ns.columns: cols_ns.append('Item')
+    if 'Description' in df_ns.columns: cols_ns.append('Description')
+
+    cols_dep = [match_key, 'Stock_Deposco']
+    if 'Description' in df_dep.columns: cols_dep.append('Description')
 
     df_ns = df_ns[[col for col in cols_ns if col in df_ns.columns]]
     df_dep = df_dep[[col for col in cols_dep if col in df_dep.columns]]
