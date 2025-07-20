@@ -31,6 +31,12 @@ if file_ns and file_dep:
     df_ns = pd.read_excel(file_ns)
     df_dep = pd.read_excel(file_dep)
 
+    df_ns.columns = df_ns.columns.str.strip()
+    df_dep.columns = df_dep.columns.str.strip()
+
+    df_ns = df_ns.loc[:, ~df_ns.columns.duplicated()]
+    df_dep = df_dep.loc[:, ~df_dep.columns.duplicated()]
+
     # Detect relevant columns
     ean_col_ns = detect_column(df_ns.columns, ["ean"])
     item_col_ns = detect_column(df_ns.columns, ["item"])
@@ -47,8 +53,10 @@ if file_ns and file_dep:
         df_dep = df_dep.rename(columns={ean_col_dep: match_key})
     elif item_col_ns and item_col_dep:
         match_key = "Item"
-        df_ns = df_ns.rename(columns={item_col_ns: match_key})
-        df_dep = df_dep.rename(columns={item_col_dep: match_key})
+        if item_col_ns != match_key:
+            df_ns = df_ns.rename(columns={item_col_ns: match_key})
+        if item_col_dep != match_key:
+            df_dep = df_dep.rename(columns={item_col_dep: match_key})
     else:
         st.error("Could not detect matching key (EAN or Item) in both files.")
         st.write("Netsuite columns:", df_ns.columns.tolist())
