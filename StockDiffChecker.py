@@ -20,11 +20,16 @@ if file_ns and file_dep:
     df_dep = pd.read_excel(file_dep)
 
     # Attempt to identify EAN column in Netsuite file
-    possible_ean_cols = [col for col in df_ns.columns if 'ean' in col.lower()]
-    ean_col_ns = possible_ean_cols[0] if possible_ean_cols else None
+    possible_ean_cols_ns = [col for col in df_ns.columns if 'ean' in col.lower()]
+    ean_col_ns = possible_ean_cols_ns[0] if possible_ean_cols_ns else None
+
+    possible_ean_cols_dep = [col for col in df_dep.columns if 'ean' in col.lower()]
+    ean_col_dep = possible_ean_cols_dep[0] if possible_ean_cols_dep else None
 
     if ean_col_ns is None:
         st.error("No EAN column found in Netsuite file. Please check the column names.")
+    elif ean_col_dep is None:
+        st.error("No EAN column found in Deposco file. Please check the column names.")
     else:
         # Filter Netsuite: exclude rows without EAN and those starting with 'Box' or 'Bag'
         df_ns = df_ns[df_ns[ean_col_ns].notna()]
@@ -39,7 +44,7 @@ if file_ns and file_dep:
             'Short Description': 'Description_NS'
         })
         df_dep = df_dep.rename(columns={
-            'EAN': 'EAN',
+            ean_col_dep: 'EAN',
             'On Hand': 'Stock_Deposco',
             'Item': 'Item_Deposco',
             'Description': 'Description_Deposco'
