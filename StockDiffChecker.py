@@ -5,7 +5,7 @@ import io
 st.title("Inventory Comparator: Netsuite vs Deposco")
 
 st.markdown("""
-This app compares inventory levels between two systems: **Netsuite** and **Deposco**.
+This app compares inventory levels between **Netsuite** and **Deposco**.
 
 **Requirements:**
 - The **Netsuite** file must contain an `EAN` column and a stock quantity column (e.g., `On Hand`).
