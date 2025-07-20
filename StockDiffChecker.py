@@ -12,24 +12,35 @@ This app allows you to compare inventory levels between two systems: **Netsuite*
 - The app will match products based on EAN and compare the stock levels.
 - Output is a file showcasing differences in stock between the two systems.
 - For questions, email: jannes.jentink@postnl.nl
+
+ℹ️ Make sure the files contain the following columns:
+- **Netsuite**: a column containing the EAN (e.g., `EAN`) and a stock column (e.g., `On Hand`)
+- **Deposco**: a column with EANs (e.g., `Item EANs (API)`) and available stock (e.g., `ATP Qty API`)
 """)
 
 file_ns = st.file_uploader("Upload Netsuite Excel file", type=["xlsx"])
 file_dep = st.file_uploader("Upload Deposco Excel file", type=["xlsx"])
 
+def detect_column(columns, keywords):
+    for col in columns:
+        for kw in keywords:
+            if kw.lower() in col.lower():
+                return col
+    return None
+
 if file_ns and file_dep:
     df_ns = pd.read_excel(file_ns)
     df_dep = pd.read_excel(file_dep)
 
-    # Verwachte kolommen
-    ean_col_ns = 'EAN'
-    stock_col_ns = 'On Hand'
+    # Kolomdetectie
+    ean_col_ns = detect_column(df_ns.columns, ["ean"])
+    stock_col_ns = detect_column(df_ns.columns, ["on hand", "stock", "qty"])
 
-    ean_col_dep = 'Item EANs (API)'
-    stock_col_dep = 'ATP Qty API'
+    ean_col_dep = detect_column(df_dep.columns, ["ean"])
+    stock_col_dep = detect_column(df_dep.columns, ["atp qty", "stock", "qty"])
 
-    if not all(col in df_ns.columns for col in [ean_col_ns, stock_col_ns]) or not all(col in df_dep.columns for col in [ean_col_dep, stock_col_dep]):
-        st.error("Expected columns were not found in one or both files.")
+    if not all([ean_col_ns, stock_col_ns, ean_col_dep, stock_col_dep]):
+        st.error("Could not automatically detect required columns. Please ensure EAN and stock quantity columns are present.")
         st.write("Netsuite columns:", df_ns.columns.tolist())
         st.write("Deposco columns:", df_dep.columns.tolist())
     else:
@@ -48,19 +59,22 @@ if file_ns and file_dep:
         df_dep['EAN'] = df_dep['EAN'].astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
 
         # Optional: choose item + description columns
-        item_col = 'Item' if 'Item' in df_ns.columns else None
-        desc_col = 'Short Description' if 'Short Description' in df_dep.columns else ('Description' if 'Description' in df_ns.columns else None)
+        item_col = detect_column(df_ns.columns, ["item"])
+        desc_col_ns = detect_column(df_ns.columns, ["description"])
+        desc_col_dep = detect_column(df_dep.columns, ["description"])
+
         if item_col: df_ns = df_ns.rename(columns={item_col: 'Item'})
-        if desc_col:
-            if desc_col in df_dep.columns:
-                df_dep = df_dep.rename(columns={desc_col: 'Description'})
-            elif desc_col in df_ns.columns:
-                df_ns = df_ns.rename(columns={desc_col: 'Description'})
+        if desc_col_dep:
+            df_dep = df_dep.rename(columns={desc_col_dep: 'Description'})
+        elif desc_col_ns:
+            df_ns = df_ns.rename(columns={desc_col_ns: 'Description'})
 
         # Merge and compare
-        merged = pd.merge(df_ns[['EAN', 'Item', 'Description', 'Stock_NS']] if 'Item' in df_ns.columns and 'Description' in df_ns.columns else df_ns,
-                          df_dep[['EAN', 'Description', 'Stock_Deposco']] if 'Description' in df_dep.columns else df_dep,
-                          on='EAN', how='outer', indicator=True)
+        merged = pd.merge(
+            df_ns[['EAN', 'Item', 'Description', 'Stock_NS']] if 'Item' in df_ns.columns and 'Description' in df_ns.columns else df_ns,
+            df_dep[['EAN', 'Description', 'Stock_Deposco']] if 'Description' in df_dep.columns else df_dep,
+            on='EAN', how='outer', indicator=True
+        )
 
         merged['Stock_NS'] = merged['Stock_NS'].fillna(0)
         merged['Stock_Deposco'] = merged['Stock_Deposco'].fillna(0)
