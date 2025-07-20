@@ -9,7 +9,8 @@ This app allows you to compare inventory levels between two systems: **Netsuite*
 **How it works:**
 - Upload the latest Excel exports from both systems below.
 - The app will match products based on EAN and compare the stock levels.
-- Differences or missing products will be highlighted.
+- Output is a file showcasing differences in stock between the two systems.
+- For questions, email: jannes.jentink@postnl.nl
 """)
 
 file_ns = st.file_uploader("Upload Netsuite Excel file", type=["xlsx"])
@@ -31,7 +32,7 @@ if file_ns and file_dep:
         st.write("Netsuite columns:", df_ns.columns.tolist())
         st.write("Deposco columns:", df_dep.columns.tolist())
     else:
-        st.success(f"Using columns: Netsuite → EAN: '{ean_col_ns}', Stock: '{stock_col_ns}' | Deposco → EAN: '{ean_col_dep}', Stock: '{stock_col_dep}'")
+        st.success("Successful comparison made")
 
         # Filter Deposco: exclude rows without EAN and those starting with 'Box' or 'Bag'
         df_dep = df_dep[df_dep[ean_col_dep].notna()]
