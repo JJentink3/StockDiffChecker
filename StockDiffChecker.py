@@ -108,6 +108,9 @@ if file_ns and file_dep:
     st.subheader("Inventory Differences")
     st.dataframe(difference_df)
 
+    # Summary statistics
+    st.markdown(f"**Total discrepancies found:** {len(difference_df)}")
+
     # Export to Excel
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
