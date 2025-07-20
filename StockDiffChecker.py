@@ -19,36 +19,47 @@ if file_ns and file_dep:
     df_ns = pd.read_excel(file_ns)
     df_dep = pd.read_excel(file_dep)
 
-    # Attempt to identify EAN column in Netsuite file
+    # Attempt to identify EAN column in both files
     possible_ean_cols_ns = [col for col in df_ns.columns if 'ean' in col.lower()]
-    ean_col_ns = possible_ean_cols_ns[0] if possible_ean_cols_ns else None
+    possible_stock_cols_ns = [col for col in df_ns.columns if 'qty' in col.lower() or 'stock' in col.lower()]
+    possible_desc_cols_ns = [col for col in df_ns.columns if 'desc' in col.lower()]
 
     possible_ean_cols_dep = [col for col in df_dep.columns if 'ean' in col.lower()]
-    ean_col_dep = possible_ean_cols_dep[0] if possible_ean_cols_dep else None
+    possible_stock_cols_dep = [col for col in df_dep.columns if 'on hand' in col.lower() or 'stock' in col.lower()]
 
-    if ean_col_ns is None:
-        st.error("No EAN column found in Netsuite file. Please check the column names.")
-    elif ean_col_dep is None:
-        st.error("No EAN column found in Deposco file. Please check the column names.")
+    ean_col_ns = possible_ean_cols_ns[0] if possible_ean_cols_ns else None
+    stock_col_ns = possible_stock_cols_ns[0] if possible_stock_cols_ns else None
+    desc_col_ns = possible_desc_cols_ns[0] if possible_desc_cols_ns else None
+
+    ean_col_dep = possible_ean_cols_dep[0] if possible_ean_cols_dep else None
+    stock_col_dep = possible_stock_cols_dep[0] if possible_stock_cols_dep else None
+
+    if not all([ean_col_ns, stock_col_ns, ean_col_dep, stock_col_dep]):
+        st.error("Could not automatically detect EAN or stock columns. Please check your files.")
     else:
         # Filter Netsuite: exclude rows without EAN and those starting with 'Box' or 'Bag'
         df_ns = df_ns[df_ns[ean_col_ns].notna()]
         if 'Number' in df_ns.columns:
             df_ns = df_ns[~df_ns['Number'].astype(str).str.startswith(('Box', 'Bag'))]
 
-        # Rename columns for simplicity
+        # Rename columns for consistency
         df_ns = df_ns.rename(columns={
             ean_col_ns: 'EAN',
-            'ATP Qty API': 'Stock_NS',
-            'Number': 'Item_NS',
-            'Short Description': 'Description_NS'
+            stock_col_ns: 'Stock_NS'
         })
+        if 'Number' in df_ns.columns:
+            df_ns = df_ns.rename(columns={'Number': 'Item_NS'})
+        if desc_col_ns:
+            df_ns = df_ns.rename(columns={desc_col_ns: 'Description_NS'})
+
         df_dep = df_dep.rename(columns={
             ean_col_dep: 'EAN',
-            'On Hand': 'Stock_Deposco',
-            'Item': 'Item_Deposco',
-            'Description': 'Description_Deposco'
+            stock_col_dep: 'Stock_Deposco'
         })
+        if 'Item' in df_dep.columns:
+            df_dep = df_dep.rename(columns={'Item': 'Item_Deposco'})
+        if 'Description' in df_dep.columns:
+            df_dep = df_dep.rename(columns={'Description': 'Description_Deposco'})
 
         # Ensure EAN is string
         df_ns['EAN'] = df_ns['EAN'].astype(str).str.strip()
