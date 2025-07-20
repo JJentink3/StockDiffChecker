@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import io
 
 st.title("Inventory Comparator: Netsuite vs Deposco")
 
@@ -43,8 +44,8 @@ if file_ns and file_dep:
         df_ns = df_ns.rename(columns={ean_col_ns: 'EAN', stock_col_ns: 'Stock_NS'})
         df_dep = df_dep.rename(columns={ean_col_dep: 'EAN', stock_col_dep: 'Stock_Deposco'})
 
-        df_ns['EAN'] = df_ns['EAN'].astype(str).str.strip()
-        df_dep['EAN'] = df_dep['EAN'].astype(str).str.strip()
+        df_ns['EAN'] = df_ns['EAN'].astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
+        df_dep['EAN'] = df_dep['EAN'].astype(str).str.strip().str.replace(r'\.0$', '', regex=True)
 
         # Optional: choose item + description columns
         item_col = 'Item' if 'Item' in df_ns.columns else None
@@ -73,5 +74,10 @@ if file_ns and file_dep:
         st.subheader("Inventory Differences")
         st.dataframe(difference_df)
 
-        csv = difference_df.to_csv(index=False).encode('utf-8')
-        st.download_button("Download Differences as CSV", csv, "inventory_differences.csv", "text/csv")
+        # Export to Excel
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            difference_df.to_excel(writer, index=False, sheet_name='Differences')
+        output.seek(0)
+
+        st.download_button("Download Differences as Excel", output, file_name="inventory_differences.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
