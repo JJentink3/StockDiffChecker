@@ -45,16 +45,32 @@ if file_ns and file_dep:
         df_ns['EAN'] = df_ns['EAN'].astype(str).str.strip()
         df_dep['EAN'] = df_dep['EAN'].astype(str).str.strip()
 
+        # Optional: choose item + description columns
+        item_col = 'Item' if 'Item' in df_ns.columns else None
+        desc_col = 'Short Description' if 'Short Description' in df_dep.columns else ('Description' if 'Description' in df_ns.columns else None)
+        if item_col: df_ns = df_ns.rename(columns={item_col: 'Item'})
+        if desc_col:
+            if desc_col in df_dep.columns:
+                df_dep = df_dep.rename(columns={desc_col: 'Description'})
+            elif desc_col in df_ns.columns:
+                df_ns = df_ns.rename(columns={desc_col: 'Description'})
+
         # Merge and compare
-        merged = pd.merge(df_ns, df_dep, on='EAN', how='outer', indicator=True)
+        merged = pd.merge(df_ns[['EAN', 'Item', 'Description', 'Stock_NS']] if 'Item' in df_ns.columns and 'Description' in df_ns.columns else df_ns,
+                          df_dep[['EAN', 'Description', 'Stock_Deposco']] if 'Description' in df_dep.columns else df_dep,
+                          on='EAN', how='outer', indicator=True)
+
         merged['Stock_NS'] = merged['Stock_NS'].fillna(0)
         merged['Stock_Deposco'] = merged['Stock_Deposco'].fillna(0)
         merged['Difference'] = merged['Stock_NS'] - merged['Stock_Deposco']
 
-        st.subheader("Inventory Differences")
+        # Only keep the columns we want
+        display_cols = ['EAN', 'Item', 'Description', 'Stock_NS', 'Stock_Deposco', 'Difference']
         difference_df = merged[(merged['Difference'] != 0) | (merged['_merge'] != 'both')]
+        difference_df = difference_df[[col for col in display_cols if col in difference_df.columns]]
+
+        st.subheader("Inventory Differences")
         st.dataframe(difference_df)
 
         csv = difference_df.to_csv(index=False).encode('utf-8')
         st.download_button("Download Differences as CSV", csv, "inventory_differences.csv", "text/csv")
-
