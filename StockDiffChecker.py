@@ -7,15 +7,16 @@ st.title("Inventory Comparator: Netsuite vs Deposco")
 st.markdown("""
 This app allows you to compare inventory levels between two systems: **Netsuite** and **Deposco**.
 
-**How it works:**
-- Upload the latest Excel exports from both systems below.
-- The app will match products based on EAN or Item (if EAN is not available) and compare the stock levels.
-- Output is a file showcasing differences in stock between the two systems.
-- For questions, email: jannes.jentink@postnl.nl
+**Requirements:**
+- **Netsuite** file must contain an EAN column and a stock column (e.g., `On Hand`).
+- **Deposco** file should be generated as follows:
+  - In the Search bar: `Search :Items`
+  - Select the `Item ATP view`
+  - Export to Excel
 
-ℹ️ Make sure the files contain the following columns:
-- **Netsuite**: a column with either EAN or Item and a stock column (e.g., `On Hand`)
-- **Deposco**: a column with either EAN (e.g., `Item EANs (API)`) or `Number` (Item) and available stock (e.g., `ATP Qty API`)
+The app matches items based on **EAN**, or falls back to **Item** if no EAN is found.
+
+For questions, email: jannes.jentink@postnl.nl
 """)
 
 file_ns = st.file_uploader("Upload Netsuite Excel file", type=["xlsx"])
