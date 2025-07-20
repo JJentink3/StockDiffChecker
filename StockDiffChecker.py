@@ -10,7 +10,7 @@ This app compares inventory levels between two systems: **Netsuite** and **Depos
 **Requirements:**
 - The **Netsuite** file must contain an `EAN` column and a stock quantity column (e.g., `On Hand`).
 - The **Deposco** file should be generated as follows:
-  - In the Search bar: `Search :Items`
+  - In the Search bar: `:Items`
   - Select the `Item ATP view`
   - Export to Excel
 
