@@ -8,7 +8,7 @@ st.markdown("""
 This app compares inventory levels between **Netsuite** and **Deposco**.
 
 **Requirements:**
-- The **Netsuite** file must contain an `EAN` column and a stock quantity column (e.g., `On Hand`).
+- The **Netsuite** file must contain an `EAN` column and a `On Hand` column.
 - The **Deposco** file should be generated as follows:
   - In the Search bar: `:Items`
   - Select the `Item ATP view`
